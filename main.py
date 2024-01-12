@@ -26,7 +26,7 @@ def send_request(self, link, **kwargs):
     return 
 
 
-def set_logger(cls, filename):
+def set_logger(filename):
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler(f"./logs/{filename}.log", mode="w", encoding='utf-8')
@@ -39,4 +39,4 @@ def set_logger(cls, filename):
 if __name__ == '__main__':
     start = time.perf_counter()
     finish = time.perf_counter()
-    # app.logger.info('Finished in %s second(s)', {round(finish - start, 2)})
+
