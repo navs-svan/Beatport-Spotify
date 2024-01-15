@@ -6,18 +6,35 @@
 #     https://docs.scrapy.org/en/latest/topics/settings.html
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+import json
+import os
 
 BOT_NAME = "beatportscraper"
 
 SPIDER_MODULES = ["beatportscraper.spiders"]
 NEWSPIDER_MODULE = "beatportscraper.spiders"
 
+parent_directory = os.path.split(os.path.split(os.path.dirname(__file__))[0])[0]
+file_path = os.path.join(parent_directory, 'credentials.json')
+
+with open(file_path, 'r') as f:
+    credentials = json.load(f)
+
+POSTGRES_HOSTNAME = credentials["hostname"]
+POSTGRES_USERNAME = credentials["username"]
+POSTGRES_PASSWORD = credentials["password"]
+POSTGRES_DATABASE = credentials["database"]
+SCRAPEOPS_API_KEY = credentials["scrapeops_api"]
+SCRAPEOPS_NUM_RES = 5
+SCRAPEOPS_ENPOINT = 'https://headers.scrapeops.io/v1/browser-headers'
+
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = "beatportscraper (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
-ROBOTSTXT_OBEY = True
+ROBOTSTXT_OBEY = False
+
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 #CONCURRENT_REQUESTS = 32
@@ -50,9 +67,10 @@ ROBOTSTXT_OBEY = True
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
-#DOWNLOADER_MIDDLEWARES = {
+DOWNLOADER_MIDDLEWARES = {
 #    "beatportscraper.middlewares.BeatportscraperDownloaderMiddleware": 543,
-#}
+    "beatportscraper.middlewares.ScrapeOpsFakeBrowserHeaders": 500
+}
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html

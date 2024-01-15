@@ -4,10 +4,10 @@
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
 from scrapy import signals
-
+import requests
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
-
+from random import randint
 
 class BeatportscraperSpiderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
@@ -101,3 +101,37 @@ class BeatportscraperDownloaderMiddleware:
 
     def spider_opened(self, spider):
         spider.logger.info("Spider opened: %s" % spider.name)
+
+class ScrapeOpsFakeBrowserHeaders:
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler.settings)
+    
+    def  __init__(self, settings) -> None:
+        self.api_key = settings.get("SCRAPEOPS_API_KEY")
+        self.num_res = settings.get("SCRAPEOPS_NUM_RES")
+        self.endpoint = settings.get("SCRAPEOPS_ENPOINT")
+        self.header_list = None
+        self._get_headers()
+        self._get_random_header()
+
+    def _get_headers(self):
+        params={
+            "api_key": self.api_key,
+            "num_results": self.num_res
+        }
+        response = requests.get(self.endpoint, params=params)
+        json_response = response.json()
+        self.header_list = json_response.get("result", [])
+
+    def _get_random_header(self):
+        rand_num = randint(0, len(self.header_list)-1)
+        return self.header_list[rand_num]
+
+    def process_request(self, request, spider):
+        browser_header = self._get_random_header()
+        header_keys = browser_header.keys()
+        for header_key in header_keys:
+            request.headers[header_key] = browser_header[header_key]
+        print("ATTACHED NEW HEADER")
