@@ -19,6 +19,5 @@ class ChartItem(scrapy.Item):
     track_bpm = scrapy.Field()
     track_key = scrapy.Field()
     track_date = scrapy.Field()
+    track_length_ms = scrapy.Field()
     
-
-    pass

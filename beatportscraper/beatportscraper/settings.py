@@ -14,6 +14,10 @@ BOT_NAME = "beatportscraper"
 SPIDER_MODULES = ["beatportscraper.spiders"]
 NEWSPIDER_MODULE = "beatportscraper.spiders"
 
+FEEDS = {
+    'data.csv': {'format': 'csv'}
+}
+
 parent_directory = os.path.split(os.path.split(os.path.dirname(__file__))[0])[0]
 file_path = os.path.join(parent_directory, 'credentials.json')
 
@@ -80,9 +84,10 @@ DOWNLOADER_MIDDLEWARES = {
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    "beatportscraper.pipelines.BeatportscraperPipeline": 300,
-#}
+# ITEM_PIPELINES = {
+# #    "beatportscraper.pipelines.BeatportscraperPipeline": 300,
+#     "beatportscraper.pipelines."
+# }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
