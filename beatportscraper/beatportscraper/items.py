@@ -11,6 +11,7 @@ class ChartItem(scrapy.Item):
     # name = scrapy.Field()
     chart_name = scrapy.Field()
     chart_date = scrapy.Field()
+    chart_author = scrapy.Field()
     track_title = scrapy.Field()
     track_artist = scrapy.Field()
     track_label = scrapy.Field()

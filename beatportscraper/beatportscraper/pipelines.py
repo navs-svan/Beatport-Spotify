@@ -8,6 +8,15 @@
 from itemadapter import ItemAdapter
 import psycopg2
 
+
+class DuplicatesPipeline:
+    # get latest entry from postgres
+    # check if item matches latest entry
+    # terminate scraper if matches
+    # else return item
+    ...
+
+
 class BeatportscraperPipeline:
     def process_item(self, item, spider):
         adapter = ItemAdapter(item)
@@ -44,10 +53,11 @@ class SaveToPostgresPipeline:
 
         # Create Table
         self.cur.execute(""" 
-                CREATE TABLE IF NOT EXISTS tracks(
+                CREATE TABLE IF NOT EXISTS tracks2(
                 id serial PRIMARY KEY,
                 chart_name VARCHAR(128),
                 chart_date TIMESTAMP,
+                chart_author VARCHAR(128),
                 track_title VARCHAR(128),
                 track_artist VARCHAR(128),
                 track_label VARCHAR(128),
@@ -62,9 +72,10 @@ class SaveToPostgresPipeline:
 
 
     def process_item(self, item, spider):
-        self.cur.execute("""INSERT INTO tracks (
+        self.cur.execute("""INSERT INTO tracks2 (
                          chart_name,
                          chart_date,
+                         chart_author,
                          track_title,
                          track_artist,
                          track_label,
@@ -85,10 +96,12 @@ class SaveToPostgresPipeline:
                             %s,
                             %s,
                             %s,
+                            %s,
                             %s 
                             )""", (
                          item["chart_name"],
                          item["chart_date"],
+                         item["chart_author"],
                          item["track_title"],
                          item["track_artist"],
                          item["track_label"],

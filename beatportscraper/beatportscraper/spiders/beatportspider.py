@@ -44,6 +44,7 @@ class BeatportspiderSpider(scrapy.Spider):
 
             chart_items["chart_name"] = chart["name"]
             chart_items["chart_date"] = chart["publish_date"]
+            chart_items["chart_author"] = chart["person"]["owner_name"]
             chart_items["track_title"] = track["name"]
             chart_items["track_label"] = track["release"]["label"]["name"]
 
