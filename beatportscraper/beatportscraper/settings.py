@@ -8,15 +8,16 @@
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 import json
 import os
+import psycopg2
 
 BOT_NAME = "beatportscraper"
 
 SPIDER_MODULES = ["beatportscraper.spiders"]
 NEWSPIDER_MODULE = "beatportscraper.spiders"
 
-# FEEDS = {
-#     'data.csv': {'format': 'csv'}
-# }
+FEEDS = {
+    'data.csv': {'format': 'csv'}
+}
 
 parent_directory = os.path.split(os.path.split(os.path.dirname(__file__))[0])[0]
 file_path = os.path.join(parent_directory, 'credentials.json')
@@ -33,6 +34,7 @@ SCRAPEOPS_NUM_RES = 5
 SCRAPEOPS_ENPOINT = 'https://headers.scrapeops.io/v1/browser-headers'
 
 
+
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = "beatportscraper (+http://www.yourdomain.com)"
 
@@ -41,7 +43,7 @@ ROBOTSTXT_OBEY = False
 
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-#CONCURRENT_REQUESTS = 32
+CONCURRENT_REQUESTS = 1
 
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
@@ -85,8 +87,9 @@ DOWNLOADER_MIDDLEWARES = {
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   "beatportscraper.pipelines.BeatportscraperPipeline": 300,
-    "beatportscraper.pipelines.SaveToPostgresPipeline": 400
+   "beatportscraper.pipelines.BeatportscraperPipeline": 400,
+   "beatportscraper.pipelines.DuplicatesPipeline": 300,
+    # "beatportscraper.pipelines.SaveToPostgresPipeline": 500,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

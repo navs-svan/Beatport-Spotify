@@ -134,4 +134,3 @@ class ScrapeOpsFakeBrowserHeaders:
         header_keys = browser_header.keys()
         for header_key in header_keys:
             request.headers[header_key] = browser_header[header_key]
-        print("ATTACHED NEW HEADER")

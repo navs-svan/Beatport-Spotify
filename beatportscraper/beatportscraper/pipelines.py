@@ -6,15 +6,45 @@
 
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
+from scrapy.exceptions import DropItem
 import psycopg2
 
 
 class DuplicatesPipeline:
-    # get latest entry from postgres
-    # check if item matches latest entry
-    # terminate scraper if matches
-    # else return item
-    ...
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler.settings)
+    
+    def __init__(self, settings):
+        # Start Connection
+        hostname = settings.get("POSTGRES_HOSTNAME")
+        username = settings.get("POSTGRES_USERNAME")
+        password = settings.get("POSTGRES_PASSWORD")
+        database = settings.get("POSTGRES_DATABASE")
+        
+        self.connection = psycopg2.connect(host=hostname, user=username, password=password, database=database)
+        self.cur = self.connection.cursor()
+
+        # Get latest chart from table
+        try:
+            self.cur.execute("SELECT chart_name FROM tracks2 ORDER BY chart_date DESC LIMIT 1;")
+            rows = self.cur.fetchall()
+            for row in rows:
+                self.latest_chart = row[0]
+        except psycopg2.errors.UndefinedTable:
+            self.latest_chart = None
+    
+
+    def process_item(self, item, spider):
+        if item["chart_name"] == self.latest_chart:
+            spider.close_manually = True
+            raise DropItem("Item already in table")
+        else:
+            return item
+    
+    def close_spider(self, spider):
+        self.cur.close()
+        self.connection.close()
 
 
 class BeatportscraperPipeline:
@@ -32,8 +62,6 @@ class BeatportscraperPipeline:
             adapter["track_remixer"] = 'None'
 
         return item
-
-
 
 class SaveToPostgresPipeline:
     
@@ -69,6 +97,7 @@ class SaveToPostgresPipeline:
                 track_length_ms INTEGER
             )              
             """)
+        
 
 
     def process_item(self, item, spider):
