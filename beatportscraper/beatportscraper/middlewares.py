@@ -8,6 +8,7 @@ import requests
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
 from random import randint
+import psycopg2
 
 class BeatportscraperSpiderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
@@ -101,6 +102,41 @@ class BeatportscraperDownloaderMiddleware:
 
     def spider_opened(self, spider):
         spider.logger.info("Spider opened: %s" % spider.name)
+
+class DuplicatesPipeline:
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler.settings)
+    
+    def __init__(self, settings):
+        # Start Connection
+        hostname = settings.get("POSTGRES_HOSTNAME")
+        username = settings.get("POSTGRES_USERNAME")
+        password = settings.get("POSTGRES_PASSWORD")
+        database = settings.get("POSTGRES_DATABASE")
+        
+        self.connection = psycopg2.connect(host=hostname, user=username, password=password, database=database)
+        self.cur = self.connection.cursor()
+
+        # Get latest chart from table
+        try:
+            self.cur.execute("SELECT chart_name FROM tracks ORDER BY chart_date DESC LIMIT 1;")
+            rows = self.cur.fetchall()
+            for row in rows:
+                self.latest_chart = row[0]
+        except psycopg2.errors.UndefinedTable:
+            self.latest_chart = None
+    
+    def process_item(self, item, spider):
+        if item["chart_name"] == self.latest_chart:
+            spider.close_manually = True
+        else:
+            return item
+    
+    def close_spider(self, spider):
+        self.cur.close()
+        self.connection.close()
+
 
 class ScrapeOpsFakeBrowserHeaders:
 

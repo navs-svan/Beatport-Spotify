@@ -5,6 +5,8 @@ from beatportscraper.items import ChartItem
 from scrapy.exceptions import CloseSpider
 import json
 
+
+
 class BeatportspiderSpider(scrapy.Spider):
     name = "beatportspider"
     allowed_domains = ["www.beatport.com"]
@@ -16,28 +18,26 @@ class BeatportspiderSpider(scrapy.Spider):
 
     def parse(self, response):
         charts = response.css('div.fOQOHN')
-        priority = -1
         for chart in charts:
-            # if self.close_manually:
-            if priority == -10:
-                raise CloseSpider('Table is already updated')
+            if self.close_manually:
+                raise CloseSpider("Table is already up to date")
             else:
                 relative_url = chart.css('a.artwork::attr(href)').get()
                 chart_url = 'https://www.beatport.com' + relative_url
-                yield response.follow(chart_url, callback=self.parse_charts, priority=priority)
-            priority -= 1
+                yield response.follow(chart_url, callback=self.parse_charts)
 
-        # xpath_string = """
-        #                 //div[@class='Pager-style__Container-sc-47555d13-6 kYSUOG pages']/
-        #                 div[@class='Pager-style__PageNavItems-sc-47555d13-0 dkbnEZ']/
-        #                 a[@class='Pager-style__Page-sc-47555d13-1 iMEhSh active']/
-        #                 following::a/@href
-        #             """
-        # next_page = response.xpath(xpath_string).get()
-        # print(f"**********{next_page}************")
-        # if next_page is not None:
-        #     next_page_url = 'https://www.beatport.com' + next_page
-        #     yield response.follow(next_page_url, callback=self.parse, priority=priority)
+
+        xpath_string = """
+                        //div[@class='Pager-style__Container-sc-47555d13-6 kYSUOG pages']/
+                        div[@class='Pager-style__PageNavItems-sc-47555d13-0 dkbnEZ']/
+                        a[@class='Pager-style__Page-sc-47555d13-1 iMEhSh active']/
+                        following::a/@href
+                    """
+        next_page = response.xpath(xpath_string).get()
+        print(f"**********{next_page}************")
+        if next_page is not None:
+            next_page_url = 'https://www.beatport.com' + next_page
+            yield response.follow(next_page_url, callback=self.parse)
 
     
     def parse_charts(self, response):
@@ -50,7 +50,7 @@ class BeatportspiderSpider(scrapy.Spider):
             chart_items = ChartItem()
             remixer_list = []
             artist_list = []
-
+            chart_items["chart_url"] = response.url
             chart_items["chart_name"] = chart["name"]
             chart_items["chart_date"] = chart["publish_date"]
             chart_items["chart_author"] = chart["person"]["owner_name"]

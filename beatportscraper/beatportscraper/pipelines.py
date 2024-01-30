@@ -6,9 +6,7 @@
 
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
-from scrapy.exceptions import DropItem
 import psycopg2
-
 
 class DuplicatesPipeline:
     @classmethod
@@ -27,18 +25,16 @@ class DuplicatesPipeline:
 
         # Get latest chart from table
         try:
-            self.cur.execute("SELECT chart_name FROM tracks2 ORDER BY chart_date DESC LIMIT 1;")
+            self.cur.execute("SELECT chart_name FROM tracks ORDER BY chart_date DESC LIMIT 1;")
             rows = self.cur.fetchall()
             for row in rows:
                 self.latest_chart = row[0]
         except psycopg2.errors.UndefinedTable:
             self.latest_chart = None
     
-
     def process_item(self, item, spider):
         if item["chart_name"] == self.latest_chart:
             spider.close_manually = True
-            raise DropItem("Item already in table")
         else:
             return item
     
@@ -81,7 +77,7 @@ class SaveToPostgresPipeline:
 
         # Create Table
         self.cur.execute(""" 
-                CREATE TABLE IF NOT EXISTS tracks2(
+                CREATE TABLE IF NOT EXISTS tracks(
                 id serial PRIMARY KEY,
                 chart_name VARCHAR(128),
                 chart_date TIMESTAMP,
@@ -101,7 +97,7 @@ class SaveToPostgresPipeline:
 
 
     def process_item(self, item, spider):
-        self.cur.execute("""INSERT INTO tracks2 (
+        self.cur.execute("""INSERT INTO tracks (
                          chart_name,
                          chart_date,
                          chart_author,

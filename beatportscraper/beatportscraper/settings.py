@@ -15,9 +15,9 @@ BOT_NAME = "beatportscraper"
 SPIDER_MODULES = ["beatportscraper.spiders"]
 NEWSPIDER_MODULE = "beatportscraper.spiders"
 
-FEEDS = {
-    'data.csv': {'format': 'csv'}
-}
+# FEEDS = {
+#     'data.csv': {'format': 'csv'}
+# }
 
 parent_directory = os.path.split(os.path.split(os.path.dirname(__file__))[0])[0]
 file_path = os.path.join(parent_directory, 'credentials.json')
@@ -43,7 +43,7 @@ ROBOTSTXT_OBEY = False
 
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-CONCURRENT_REQUESTS = 1
+# CONCURRENT_REQUESTS = 1
 
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
@@ -67,15 +67,25 @@ CONCURRENT_REQUESTS = 1
 
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-#SPIDER_MIDDLEWARES = {
+SPIDER_MIDDLEWARES = {
 #    "beatportscraper.middlewares.BeatportscraperSpiderMiddleware": 543,
-#}
+    "scrapy_deltafetch.DeltaFetch": 100,
+}
+
+DELTAFETCH_ENABLED = True
+
+# scrapy crawl beatportspider -a deltafetch_reset=1 (DOES NOT WORK)
+# RUN COMMAND TO RESET DELTAFETCH
+# DELTAFETCH_RESET = True
+
+
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
 #    "beatportscraper.middlewares.BeatportscraperDownloaderMiddleware": 543,
-    "beatportscraper.middlewares.ScrapeOpsFakeBrowserHeaders": 500
+    "beatportscraper.middlewares.ScrapeOpsFakeBrowserHeaders": 500,
+    # "beatportscraper.pipelines.DuplicatesPipeline": 600,
 }
 
 # Enable or disable extensions
@@ -87,9 +97,8 @@ DOWNLOADER_MIDDLEWARES = {
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   "beatportscraper.pipelines.BeatportscraperPipeline": 400,
-   "beatportscraper.pipelines.DuplicatesPipeline": 300,
-    # "beatportscraper.pipelines.SaveToPostgresPipeline": 500,
+    "beatportscraper.pipelines.BeatportscraperPipeline": 400,
+    "beatportscraper.pipelines.SaveToPostgresPipeline": 500,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

@@ -9,6 +9,7 @@ import scrapy
 class ChartItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
+    chart_url = scrapy.Field()
     chart_name = scrapy.Field()
     chart_date = scrapy.Field()
     chart_author = scrapy.Field()

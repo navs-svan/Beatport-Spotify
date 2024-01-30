@@ -4,3 +4,4 @@ lxml==5.0.0
 Scrapy==2.11.0
 ipython==8.20.0
 psycopg2==2.9.9
+scrapy-deltafetch==2.0.1
