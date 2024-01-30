@@ -10,14 +10,15 @@ import json
 import os
 import psycopg2
 
+
 BOT_NAME = "beatportscraper"
 
 SPIDER_MODULES = ["beatportscraper.spiders"]
 NEWSPIDER_MODULE = "beatportscraper.spiders"
 
-# FEEDS = {
-#     'data.csv': {'format': 'csv'}
-# }
+FEEDS = {
+    'data.csv': {'format': 'csv'}
+}
 
 parent_directory = os.path.split(os.path.split(os.path.dirname(__file__))[0])[0]
 file_path = os.path.join(parent_directory, 'credentials.json')
@@ -33,7 +34,21 @@ SCRAPEOPS_API_KEY = credentials["scrapeops_api"]
 SCRAPEOPS_NUM_RES = 5
 SCRAPEOPS_ENPOINT = 'https://headers.scrapeops.io/v1/browser-headers'
 
+# GET LATEST ENTRY FROM POSTGRES
 
+connection = psycopg2.connect(host=POSTGRES_HOSTNAME, user=POSTGRES_USERNAME, password=POSTGRES_PASSWORD, database=POSTGRES_DATABASE)
+cur = connection.cursor()
+
+try:
+    cur.execute("SELECT chart_url FROM tracks ORDER BY chart_date DESC LIMIT 1;")
+    rows = cur.fetchall()
+    for row in rows:
+        LATEST_URL = row[0]
+except psycopg2.errors.UndefinedTable:
+    LATEST_URL = None
+
+cur.close()
+connection.close()
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = "beatportscraper (+http://www.yourdomain.com)"
@@ -68,16 +83,18 @@ ROBOTSTXT_OBEY = False
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 SPIDER_MIDDLEWARES = {
-#    "beatportscraper.middlewares.BeatportscraperSpiderMiddleware": 543,
-    "scrapy_deltafetch.DeltaFetch": 100,
+#   "beatportscraper.middlewares.BeatportscraperSpiderMiddleware": 543,
+    "scrapy_deltafetch.DeltaFetch": 200,
 }
 
 DELTAFETCH_ENABLED = True
-
-# scrapy crawl beatportspider -a deltafetch_reset=1 (DOES NOT WORK)
-# RUN COMMAND TO RESET DELTAFETCH
 # DELTAFETCH_RESET = True
 
+# RUN LINE TO RESET DELTAFETCH
+
+LOG_ENABLED = True
+LOG_FILE = "log.log"
+LOG_FILE_APPEND = False
 
 
 # Enable or disable downloader middlewares
@@ -85,7 +102,6 @@ DELTAFETCH_ENABLED = True
 DOWNLOADER_MIDDLEWARES = {
 #    "beatportscraper.middlewares.BeatportscraperDownloaderMiddleware": 543,
     "beatportscraper.middlewares.ScrapeOpsFakeBrowserHeaders": 500,
-    # "beatportscraper.pipelines.DuplicatesPipeline": 600,
 }
 
 # Enable or disable extensions

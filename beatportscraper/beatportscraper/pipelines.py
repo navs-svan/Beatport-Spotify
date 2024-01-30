@@ -8,40 +8,6 @@
 from itemadapter import ItemAdapter
 import psycopg2
 
-class DuplicatesPipeline:
-    @classmethod
-    def from_crawler(cls, crawler):
-        return cls(crawler.settings)
-    
-    def __init__(self, settings):
-        # Start Connection
-        hostname = settings.get("POSTGRES_HOSTNAME")
-        username = settings.get("POSTGRES_USERNAME")
-        password = settings.get("POSTGRES_PASSWORD")
-        database = settings.get("POSTGRES_DATABASE")
-        
-        self.connection = psycopg2.connect(host=hostname, user=username, password=password, database=database)
-        self.cur = self.connection.cursor()
-
-        # Get latest chart from table
-        try:
-            self.cur.execute("SELECT chart_name FROM tracks ORDER BY chart_date DESC LIMIT 1;")
-            rows = self.cur.fetchall()
-            for row in rows:
-                self.latest_chart = row[0]
-        except psycopg2.errors.UndefinedTable:
-            self.latest_chart = None
-    
-    def process_item(self, item, spider):
-        if item["chart_name"] == self.latest_chart:
-            spider.close_manually = True
-        else:
-            return item
-    
-    def close_spider(self, spider):
-        self.cur.close()
-        self.connection.close()
-
 
 class BeatportscraperPipeline:
     def process_item(self, item, spider):
@@ -79,6 +45,7 @@ class SaveToPostgresPipeline:
         self.cur.execute(""" 
                 CREATE TABLE IF NOT EXISTS tracks(
                 id serial PRIMARY KEY,
+                chart_url TEXT,
                 chart_name VARCHAR(128),
                 chart_date TIMESTAMP,
                 chart_author VARCHAR(128),
@@ -98,6 +65,7 @@ class SaveToPostgresPipeline:
 
     def process_item(self, item, spider):
         self.cur.execute("""INSERT INTO tracks (
+                         chart_url,
                          chart_name,
                          chart_date,
                          chart_author,
@@ -122,8 +90,10 @@ class SaveToPostgresPipeline:
                             %s,
                             %s,
                             %s,
+                            %s,
                             %s 
                             )""", (
+                         item["chart_url"],
                          item["chart_name"],
                          item["chart_date"],
                          item["chart_author"],

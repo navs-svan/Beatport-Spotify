@@ -6,26 +6,28 @@ from scrapy.exceptions import CloseSpider
 import json
 
 
-
 class BeatportspiderSpider(scrapy.Spider):
     name = "beatportspider"
     allowed_domains = ["www.beatport.com"]
     start_urls = ["https://www.beatport.com/charts/all?page=1&per_page=150"]
 
-    def __init__(self):
-        self.close_manually = False
-
-
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler.settings)
+    
+    def __init__(self, settings):
+        self.latest_url = settings.get("LATEST_URL")
+        print(self.latest_url)
+        
     def parse(self, response):
         charts = response.css('div.fOQOHN')
         for chart in charts:
-            if self.close_manually:
+            relative_url = chart.css('a.artwork::attr(href)').get()
+            chart_url = 'https://www.beatport.com' + relative_url
+            if chart_url == self.latest_url:
                 raise CloseSpider("Table is already up to date")
             else:
-                relative_url = chart.css('a.artwork::attr(href)').get()
-                chart_url = 'https://www.beatport.com' + relative_url
                 yield response.follow(chart_url, callback=self.parse_charts)
-
 
         xpath_string = """
                         //div[@class='Pager-style__Container-sc-47555d13-6 kYSUOG pages']/
@@ -70,7 +72,12 @@ class BeatportspiderSpider(scrapy.Spider):
 
             chart_items["track_genre"] = track["genre"]["name"]
             chart_items["track_bpm"] = track["bpm"]
-            chart_items["track_key"] = track["key"]["name"]
+
+            try:
+                chart_items["track_key"] = track["key"]["name"]
+            except TypeError:
+                chart_items["track_key"] = None
+
             chart_items["track_date"] = track["publish_date"]
             chart_items["track_length_ms"] = track["length_ms"]
 
