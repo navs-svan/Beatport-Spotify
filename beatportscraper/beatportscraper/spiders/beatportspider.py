@@ -2,7 +2,6 @@ from typing import Iterable
 import scrapy
 from scrapy.http import Request
 from beatportscraper.items import ChartItem
-from scrapy.exceptions import CloseSpider
 import json
 
 
@@ -24,10 +23,7 @@ class BeatportspiderSpider(scrapy.Spider):
         for chart in charts:
             relative_url = chart.css('a.artwork::attr(href)').get()
             chart_url = 'https://www.beatport.com' + relative_url
-            if chart_url == self.latest_url:
-                raise CloseSpider("Table is already up to date")
-            else:
-                yield response.follow(chart_url, callback=self.parse_charts)
+            yield response.follow(chart_url, callback=self.parse_charts)
 
         xpath_string = """
                         //div[@class='Pager-style__Container-sc-47555d13-6 kYSUOG pages']/

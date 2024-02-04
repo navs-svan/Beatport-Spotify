@@ -92,9 +92,9 @@ DELTAFETCH_ENABLED = True
 
 # RUN LINE TO RESET DELTAFETCH
 
-LOG_ENABLED = True
-LOG_FILE = "log.log"
-LOG_FILE_APPEND = False
+# LOG_ENABLED = True
+# LOG_FILE = "log.log"
+# LOG_FILE_APPEND = False
 
 
 # Enable or disable downloader middlewares
@@ -106,9 +106,11 @@ DOWNLOADER_MIDDLEWARES = {
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
-#EXTENSIONS = {
-#    "scrapy.extensions.telnet.TelnetConsole": None,
-#}
+EXTENSIONS = {
+   "scrapy.extensions.closespider.CloseSpider": 100,
+}
+
+CLOSESPIDER_TIMEOUT_NO_ITEM = 15
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
