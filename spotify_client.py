@@ -39,7 +39,7 @@ class SpotifyClient:
             if track_id := self.search_track(market="PH", song_details=track):
                 track_id_list.append(track_id)
 
-        self.add_song(playlist_id=playlist_id, track_id_list=track_id_list)
+        self.add_track(playlist_id=playlist_id, track_id_list=track_id_list)
 
 
 
@@ -144,7 +144,7 @@ class SpotifyClient:
             raise SystemExit("An error occured")
         
 
-    def add_song(self, playlist_id, track_id_list):
+    def add_track(self, playlist_id, track_id_list):
         endpoint = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
 
         header = {
