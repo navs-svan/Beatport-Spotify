@@ -4,6 +4,20 @@ import json
 import os
 import base64
 import webbrowser
+import random
+
+
+class SpotifyTokenException(Exception):
+    def __init__(self, message, error_code):
+        super().__init__(message)
+        self.error = error_code
+
+
+class SpotifyRateException(Exception):
+    def __init__(self, message, error_code):
+        super().__init__(message)
+        self.error = error_code
+
 
 class SpotifyClient:
 
@@ -17,30 +31,6 @@ class SpotifyClient:
 
     def __str__(self):
         return f"A spotify app for user {self.user_id}" 
-    
-
-    def main(self):
-        playlist_id = self.create_playlist("Test Playlist", "Playlist created through Spotify API")
-
-        test_song1 = {"title": "Dead Man",
-                    "artist": "Night Shift",
-                    "year": "2023"}    
-        test_song2 = {"title": "My Addiction",
-                    "artist": "Alex Guesta",
-                    "year": "2020"}
-        test_song3 = {"title": "wakakakakakkaa",
-                    "artist": "Anya Forger",
-                    "year": "2053"}
-        
-        track_list = [test_song1, test_song2, test_song3]
-        track_id_list = []
-
-        for track in track_list:
-            if track_id := self.search_track(market="PH", song_details=track):
-                track_id_list.append(track_id)
-
-        self.add_track(playlist_id=playlist_id, track_id_list=track_id_list)
-
 
 
     def auth_header(self):
@@ -52,7 +42,6 @@ class SpotifyClient:
         num_retries = 5
         for _ in range(num_retries):
             user_profile = requests.get('https://api.spotify.com/v1/me', headers=self.auth_header())
-            # print(json.dumps(user_profile.json(), indent=4, sort_keys=True))
             if user_profile.status_code == 401:
                 print("Access Token expired. Refreshing token")
                 self._refesh_token()
@@ -106,6 +95,7 @@ class SpotifyClient:
             return playlist.json()["id"]
         elif playlist.status_code == 429:
             print("Rate limit exceeded")
+            print(json.dumps(playlist.json(), indent=4, sort_keys=True))
             # TODO Handle this later
         else:
             print(json.dumps(playlist.json(), indent=4, sort_keys=True))
@@ -131,13 +121,14 @@ class SpotifyClient:
             items = song.json()["tracks"]["items"]
             if len(items) > 0:
                 # First result, if there is, is assumed to be the correct track
-                print(items[0]["external_urls"])
+                print(f"{song_details['title']}: {items[0]['external_urls']['spotify']}")
                 return items[0]["id"]
             else: 
-                print("Did not find the track")
+                print(f"{song_details['title']}: Did not find the track")
                 return None
         elif song.status_code == 429:
             print("Rate limit exceeded")
+            print(json.dumps(song.json(), indent=4, sort_keys=True))
             # TODO Handle this later
         else:
             print(json.dumps(song.json(), indent=4, sort_keys=True))
@@ -160,20 +151,74 @@ class SpotifyClient:
             print("Added tracks to playlist")
         elif add_request.status_code == 429:
             print("Rate limit exceeded")
+            print(json.dumps(add_request.json(), indent=4, sort_keys=True))
             # TODO Handle this later
         else:
             print(json.dumps(add_request.json(), indent=4, sort_keys=True))
-            raise SystemExit("Error in creating playlist") 
+            raise SystemExit("Error in adding tracks") 
 
 
-    def get_track_details(self):
-        # https://developer.spotify.com/documentation/web-api/reference/get-audio-features
-        pass
+    def get_track_features(self, track_id):
+        endpoint = f"https://api.spotify.com/v1/audio-features/{track_id}"
+
+        features_response = requests.get(endpoint, headers=self.auth_header())
+
+        if features_response.status_code == 200:
+            features = features_response.json()
+            features_dict = {
+                        "acousticness": features["acousticness"],
+                        "danceability": features["danceability"],
+                        "energy": features["energy"],
+                        "instrumentalness": features["instrumentalness"],
+                        "liveness": features["liveness"],
+                        "loudness": features["loudness"],
+                        "speechiness": features["speechiness"],
+                        "tempo": features["tempo"],
+                        "time_signature": features["time_signature"],
+                        "valence": features["valence"]
+            } 
+            return features_dict
+        
+        elif features_response.status_code == 429:
+            print("Rate limit exceeded")
+            print(json.dumps( features_response.json(), indent=4, sort_keys=True))
+            # TODO Handle this later
+        elif features_response.status_code == 401:
+            print("Access Token expired")
+            # TODO Handle this later
+        else:
+            print(json.dumps(features_response.json(), indent=4))
+            raise SystemExit("Error in getting track features")
+        
+
+    def get_recommendations(self, market, track_ids:list, limit=20):
+        seed_track = random.sample(track_ids, 5)
+        endpoint = "https://api.spotify.com/v1/recommendations"
+        
+        params = {
+            "seed_tracks": ','.join(seed_track),
+            "limit": limit,
+            market: market
+        }
+        reco_request =requests.get(endpoint, params=params, headers=self.auth_header())
 
 
-    def get_recommendations(self):
-        # https://developer.spotify.com/documentation/web-api/reference/get-recommendations
-        pass
+        if reco_request.status_code == 200:
+            reco_track_ids = []
+            reco_tracks = reco_request.json()["tracks"]
+            for track in reco_tracks:
+                reco_track_ids.append(track['id'])
+            print(f"Recommending {len(reco_track_ids)} number of tracks")
+            return reco_track_ids
+        elif reco_request.status_code == 429:
+            print("Rate limit exceeded")
+            print(json.dumps(reco_request.json(), indent=4, sort_keys=True))
+            # TODO Handle this later
+        else:
+            print(json.dumps(reco_request.json(), indent=4, sort_keys=True))
+            raise SystemExit("An error occured")
+
+
 
     @classmethod
     def get_credentials(cls, credentials_file):
@@ -253,4 +298,49 @@ class SpotifyClient:
 if __name__ == "__main__":
     credentials = os.path.join(os.path.dirname(__file__), 'credentials.json')
     app = SpotifyClient.get_credentials(credentials)
-    app.main()  
+
+    # playlist_id = app.create_playlist("Summer Playlist by Philippe Petit", "Playlist created through Spotify API")
+
+    test_song1 = {"title": "Remember",
+                "artist": "Philippe Petit",
+                "year": "2023"}    
+    test_song2 = {"title": "Celeste",
+                "artist": "Philippe Petit",
+                "year": "2023"}
+    test_song3 = {"title": "Perimeter",
+                "artist": "JXTPS",
+                "year": "2023"}
+    test_song4 = {"title": "Exile",
+                "artist": "Dimi Angelis",
+                "year": "2023"}
+    test_song5 = {"title": "Reset",
+                "artist": "Decka",
+                "year": "2023"}
+    test_song6 = {"title": "Motor",
+                "artist": "Roseen",
+                "year": "2023"}
+    test_song7 = {"title": "Imadub",
+                "artist": "Kessell, Kerqus",
+                "year": "2023"}
+    test_song8 = {"title": "Igman",
+                "artist": "Sev Dah",
+                "year": "2023"}
+    test_song9 = {"title": "Time to Expand",
+                "artist": "Dying & Barakat",
+                "year": "2023"}
+    test_song10 = {"title": "Activation",
+                "artist": "Echologist",
+                "year": "2023"}
+    
+    track_list = [test_song1, test_song2, test_song3, test_song4, test_song5, test_song6, test_song7, test_song8, test_song9, test_song10]
+    track_id_list = []
+
+    for track in track_list:
+        if track_id := app.search_track(market="PH", song_details=track):
+            track_id_list.append(track_id)
+    
+    
+    reco_track_ids = app.get_recommendations(market="PH", track_ids=track_id_list)
+    playlist_id2 = app.create_playlist("Recos Based on Summer By Philippe Petit ", "Playlist created through Spotify API")
+    app.add_track(playlist_id=playlist_id2, track_id_list=reco_track_ids)
+    # app.add_track(playlist_id=playlist_id, track_id_list=track_id_list)
