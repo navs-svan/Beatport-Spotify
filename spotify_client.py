@@ -131,12 +131,13 @@ class SpotifyClient:
                         for artist in artists:
                             result_artist_set.add(unidecode(artist["name"].lower()))
 
-                        input_artist_set = set(song_details['artist'].lower().split(','))
+                        input_artist_set = set(song_details['artist'].lower().split(', '))
                         artist_match = input_artist_set.intersection(result_artist_set)
 
                         if len(artist_match) > 0:
                             match_index = index
                             break
+
                     # Matching track is assumed correct
                     if match_index is not None:
                         print(f"{song_details['title']}: {items[match_index]['external_urls']['spotify']}")
@@ -353,19 +354,20 @@ if __name__ == "__main__":
     test_song9 = {"title": "Time to Expand",
                 "artist": "Dying & Barakat",
                 "year": "2023"}
-    test_song10 = {"title": "Activation",
-                "artist": "Echologist",
+    test_song10 = {"title": "Take It Off",
+                "artist": "FISHER (OZ), Aatig",
                 "year": "2023"}
     
     track_list = [test_song1, test_song2, test_song3, test_song4, test_song5, test_song6, test_song7, test_song8, test_song9, test_song10]
     track_id_list = []
 
-    for track in track_list:
-        if track_id := app.search_track(market="PH", song_details=track):
-            track_id_list.append(track_id)
+    # for track in track_list:
+    #     if track_id := app.search_track(market="PH", song_details=track):
+    #         track_id_list.append(track_id)
     
     # app.add_track(playlist_id=playlist_id, track_id_list=track_id_list)
-    reco_track_ids = app.get_recommendations(market="PH", track_ids=track_id_list)
-    playlist_id2 = app.create_playlist("Recos Based on Summer By Philippe Petit ", "Playlist created through Spotify API")
-    app.add_track(playlist_id=playlist_id2, track_id_list=reco_track_ids)
+    # reco_track_ids = app.get_recommendations(market="PH", track_ids=track_id_list)
+    # playlist_id2 = app.create_playlist("Recos Based on Summer By Philippe Petit ", "Playlist created through Spotify API")
+    # app.add_track(playlist_id=playlist_id2, track_id_list=reco_track_ids)
     
+    track_id = app.search_track(market="PH", song_details=test_song10)
