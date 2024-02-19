@@ -5,6 +5,7 @@ import os
 import base64
 import webbrowser
 import random
+from unidecode import unidecode
 
 
 class SpotifyTokenException(Exception):
@@ -102,9 +103,9 @@ class SpotifyClient:
             raise SystemExit("Error in creating playlist")
 
 
-    def search_track(self, market, song_details:dict, type_="track", limit=1, offset=0):
+    def search_track(self, market, song_details:dict, type_="track", limit=50, offset=0):
                 
-        query_string = f"artist:{song_details['artist']} track:{song_details['title']} year:{song_details['year']}"
+        query_string = f"track:{song_details['title'].split('feat')[0].strip('()')} year:{song_details['year']}"
         
         endpoint = "https://api.spotify.com/v1/search"
         params = {
@@ -118,14 +119,38 @@ class SpotifyClient:
         song = requests.get(endpoint, params=params, headers=self.auth_header())
 
         if song.status_code == 200:
-            items = song.json()["tracks"]["items"]
-            if len(items) > 0:
-                # First result, if there is, is assumed to be the correct track
-                print(f"{song_details['title']}: {items[0]['external_urls']['spotify']}")
-                return items[0]["id"]
-            else: 
-                print(f"{song_details['title']}: Did not find the track")
-                return None
+            while True:
+                items = song.json()["tracks"]["items"]
+                if len(items) > 0:
+                    # Check if artist matches
+                    match_index = None
+                    for index, item in enumerate(items):
+                        result_artist_set = set()
+                        artists = item["artists"]
+
+                        for artist in artists:
+                            result_artist_set.add(unidecode(artist["name"].lower()))
+
+                        input_artist_set = set(song_details['artist'].lower().split(','))
+                        artist_match = input_artist_set.intersection(result_artist_set)
+
+                        if len(artist_match) > 0:
+                            match_index = index
+                            break
+                    # Matching track is assumed correct
+                    if match_index is not None:
+                        print(f"{song_details['title']}: {items[match_index]['external_urls']['spotify']}")
+                        return items[match_index]["id"]
+                    else:
+                        next_endpoint = song.json()["tracks"]["next"]
+                        if next_endpoint is None:  # No more items to return
+                            print(f"{song_details['title']}: Did not find the track")
+                            return None
+                        else:
+                            song = requests.get(next_endpoint, headers=self.auth_header())
+                else: 
+                    print(f"{song_details['title']}: Did not find the track")
+                    return None
         elif song.status_code == 429:
             print("Rate limit exceeded")
             print(json.dumps(song.json(), indent=4, sort_keys=True))
@@ -339,8 +364,8 @@ if __name__ == "__main__":
         if track_id := app.search_track(market="PH", song_details=track):
             track_id_list.append(track_id)
     
-    
+    # app.add_track(playlist_id=playlist_id, track_id_list=track_id_list)
     reco_track_ids = app.get_recommendations(market="PH", track_ids=track_id_list)
     playlist_id2 = app.create_playlist("Recos Based on Summer By Philippe Petit ", "Playlist created through Spotify API")
     app.add_track(playlist_id=playlist_id2, track_id_list=reco_track_ids)
-    # app.add_track(playlist_id=playlist_id, track_id_list=track_id_list)
+    
