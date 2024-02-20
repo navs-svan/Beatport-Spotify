@@ -6,7 +6,7 @@ import json
 import argparse
 import random
 
-def chart_to_spotify(cur, spot_app, chart_details:tuple):
+def chart_to_spotify(cur, chart_details:tuple):
     # SQL query
     query = """
                 SELECT 
@@ -23,18 +23,11 @@ def chart_to_spotify(cur, spot_app, chart_details:tuple):
     cur.execute(query, chart_details)
     tracks = cur.fetchall()
     
-    # Spotify API
-    playlist_id = spot_app.create_playlist(f"{tracks[0]['chart_name']} by {tracks[0]['chart_author']}", "Playlist created through Spotify API")
-    
-    track_id_list = []
-    for track in tracks:
-        if track_id := app.search_track(market="PH", song_details=track):
-            track_id_list.append(track_id)
-
-    app.add_track(playlist_id=playlist_id, track_id_list=track_id_list)
+    title = f"{tracks[0]['chart_name']} by {tracks[0]['chart_author']}"
+    return (tracks, title)
 
 
-def by_artist_to_spotify(cur, spot_app, artist, limit=50, year_range=None):
+def by_artist_to_spotify(cur, artist, limit=50, year_range=None):
     # SQL query
     if year_range:
         query = """
@@ -64,19 +57,13 @@ def by_artist_to_spotify(cur, spot_app, artist, limit=50, year_range=None):
         limited_tracks = random.sample(tracks, limit)
     except ValueError:
         limited_tracks = tracks
- 
-    # Spotify API
-    playlist_id = spot_app.create_playlist(f"Tracks by {tracks[0]['artist']}", "Playlist created through Spotify API")
     
-    track_id_list = []
-    for track in limited_tracks:
-        if track_id := app.search_track(market="PH", song_details=track):
-            track_id_list.append(track_id)
+    title = f"Tracks by {tracks[0]['artist']}"
 
-    app.add_track(playlist_id=playlist_id, track_id_list=track_id_list)
+    return (limited_tracks, title)
 
 
-def by_genre_spotify(cur, spot_app, genre, limit=50, mode="top", year_range=None):
+def by_genre_spotify(cur, genre, limit=50, mode="top", year_range=None):
     # SQL query
     if year_range:
         query = """
@@ -142,18 +129,12 @@ def by_genre_spotify(cur, spot_app, genre, limit=50, mode="top", year_range=None
         except ValueError:
             limited_tracks = tracks
 
-    # Spotify API
-    playlist_id = spot_app.create_playlist(f"{tracks[0]['track_genre']} Genre Tracks ({mode})", "Playlist created through Spotify API")
+    title = f"{tracks[0]['track_genre']} Genre Tracks ({mode})"
+
+    return (limited_tracks, title)
     
-    track_id_list = []
-    for track in limited_tracks:
-        if track_id := app.search_track(market="PH", song_details=track):
-            track_id_list.append(track_id)
 
-    app.add_track(playlist_id=playlist_id, track_id_list=track_id_list)
-
-
-def by_author_to_spotify(cur, spot_app, chart_author:str):
+def by_author_to_spotify(cur, chart_author:str):
     query = """
                 SELECT 
                     chart_name, 
@@ -171,21 +152,16 @@ def by_author_to_spotify(cur, spot_app, chart_author:str):
     cur.execute(query, (chart_author,))
     charts = cur.fetchall()
     for chart in charts:
-        chart_details = (chart["chart_name"], chart_author)
-        chart_to_spotify(cur=cur, spot_app=app, chart_details=chart_details)
+        yield (chart["chart_name"], chart_author)
+
     
 
-def get_recommendation(cur, spot_app):
-    ...
-    
-# can query based on chart, artist, or genre
 # limit results based on desired number, between release years, bpms, random or by number of appearances in charts
 
 if __name__ == '__main__':
     credentials_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
 
-    app = spotify_client.SpotifyClient.get_credentials(credentials_path)
-
+    # Postgres Connection
     with open(credentials_path, 'r') as f:
         credentials = json.load(f)
 
@@ -195,16 +171,50 @@ if __name__ == '__main__':
                             password=credentials["password"])
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+    # Main Body
+    track_title_list = []
 
-    # chart_details = ('Winter Grooves', 'Carlos Manaca')
-    # chart_to_spotify(cur=cur, spot_app=app, chart_details=chart_details)
+    # SPECIFIC CHART
+    chart_details = ('Winter Grooves', 'Carlos Manaca')
+    track_title_list = [chart_to_spotify(cur=cur, chart_details=chart_details)]
 
-    # by_author_to_spotify(cur=cur, spot_app=app, chart_author="Todd Terry")
+    # CHART AUTHOR
+    # chart_details = by_author_to_spotify(cur=cur, chart_author="Tacoman")
+    # for chart_detail in chart_details:
+    #     tracks, title = chart_to_spotify(cur=cur, chart_details=chart_detail)
+    #     track_title_list.append((tracks, title))
 
+    # TRACK ARTIST
     # year_range = ('2023-06', '2024-01')
-    # by_artist_to_spotify(cur=cur, spot_app=app, artist="Dompe", limit=50, year_range=year_range)
+    # track_title_list = [by_artist_to_spotify(cur=cur, artist="Dompe", limit=50, year_range=year_range)]
 
-    # by_genre_spotify(cur, spot_app=app, genre="House", limit=30, mode="top", year_range=year_range)
+    # TRACK GENRE
+    # year_range = ('2023-06', '2024-01')
+    # track_title_list = [by_genre_spotify(cur, genre="Hard Techno", limit=30, mode="top", year_range=year_range)]
+
+    # RECOMMENDATION
+    recommendation = False
+
+    # Spotify API
+    app = spotify_client.SpotifyClient.get_credentials(credentials_path)
+    
+    for track_title in track_title_list:
+        track_id_list = []
+        tracks, title = track_title[0], track_title[1]
+
+        for track in tracks:
+            if track_id := app.search_track(market="PH", song_details=track):
+                track_id_list.append(track_id)
+
+        if recommendation is True:
+            reco_track_ids = app.get_recommendations(market="PH", track_ids=track_id_list, limit=30)
+            title = title + '(recommendations)'
+            playlist_id = app.create_playlist(title, "Playlist created through Spotify API")
+            app.add_track(playlist_id=playlist_id, track_id_list=reco_track_ids)
+        else:
+            playlist_id = app.create_playlist(title, "Playlist created through Spotify API")
+            app.add_track(playlist_id=playlist_id, track_id_list=track_id_list)
+
 
     # Close connection after running script
     cur.close()
