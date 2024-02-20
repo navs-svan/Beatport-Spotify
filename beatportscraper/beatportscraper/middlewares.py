@@ -114,7 +114,6 @@ class ScrapeOpsFakeBrowserHeaders:
         self.endpoint = settings.get("SCRAPEOPS_ENPOINT")
         self.header_list = None
         self._get_headers()
-        self._get_random_header()
 
     def _get_headers(self):
         params={
