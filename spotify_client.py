@@ -30,6 +30,7 @@ class SpotifyClient:
         self.credentials_file = credentials_file
         self.user_id = self.get_user_id()
 
+
     def __str__(self):
         return f"A spotify app for user {self.user_id}" 
 
@@ -68,11 +69,11 @@ class SpotifyClient:
         }
 
         token_request = requests.post(url, headers=req_headers, data=req_data)
-        print(token_request.json())
+
         if token_request.status_code == 200:
             self.access_token = token_request.json()["access_token"]
             SpotifyClient._save_credentials(self.access_token,  refresh_token=None, credentials_file=self.credentials_file)
-            # If refresh request fails, ask user to re-authenticate
+            # TODO If refresh request fails, ask user to re-authenticate
 
 
     def create_playlist(self, name, descr, public=True, collab=False):
@@ -217,7 +218,7 @@ class SpotifyClient:
             raise SystemExit("Error in getting track features")
         
 
-    def get_recommendations(self, market, track_ids:list, limit=20):
+    def get_recommendations(self, market, track_ids:list, limit=50):
         seed_track = random.sample(track_ids, 5)
         endpoint = "https://api.spotify.com/v1/recommendations"
         
@@ -228,13 +229,12 @@ class SpotifyClient:
         }
         reco_request =requests.get(endpoint, params=params, headers=self.auth_header())
 
-
         if reco_request.status_code == 200:
             reco_track_ids = []
             reco_tracks = reco_request.json()["tracks"]
             for track in reco_tracks:
                 reco_track_ids.append(track['id'])
-            print(f"Recommending {len(reco_track_ids)} number of tracks")
+            print(f"Recommending {len(reco_track_ids)} tracks")
             return reco_track_ids
         elif reco_request.status_code == 429:
             print("Rate limit exceeded")
@@ -243,7 +243,6 @@ class SpotifyClient:
         else:
             print(json.dumps(reco_request.json(), indent=4, sort_keys=True))
             raise SystemExit("An error occured")
-
 
 
     @classmethod
