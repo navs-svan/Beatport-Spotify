@@ -37,7 +37,7 @@ def by_artist(cur, artist, limit=50, year_range=None):
                         track_artist as artist,
                         EXTRACT('Year' FROM track_date) AS year
                     FROM tracks
-                    WHERE track_artist ILIKE %s
+                    WHERE strpos(track_artist, %s) > 0
                     AND track_date BETWEEN %s AND %s;
                 """
         cur.execute(query, (artist, f"{year_range[0]}-01", f"{year_range[1]}-31"))
@@ -48,7 +48,7 @@ def by_artist(cur, artist, limit=50, year_range=None):
                         track_artist AS artist,
                         EXTRACT('Year' FROM track_date) AS year
                     FROM tracks
-                    WHERE track_artist ILIKE %s;
+                    WHERE strpos(track_artist, %s) > 0;
                 """
         cur.execute(query, (artist,))
 
