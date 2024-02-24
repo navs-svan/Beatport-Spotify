@@ -105,8 +105,9 @@ class SpotifyClient:
 
 
     def search_track(self, market, song_details:dict, type_="track", limit=50, offset=0):
-                
-        query_string = f"track:{song_details['title'].split('feat')[0].strip('()')} year:{song_details['year']}"
+        remove_limiters = str.maketrans('','', ":/?#[]@!$&'()*+,;=")  # API does not seem to work when queries have this even if properly converted
+
+        query_string = f"track:{song_details['title'].translate(remove_limiters).split('feat')[0]} year:{song_details['year']}"
         
         endpoint = "https://api.spotify.com/v1/search"
         params = {

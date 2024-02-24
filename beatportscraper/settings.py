@@ -16,9 +16,9 @@ BOT_NAME = "beatportscraper"
 SPIDER_MODULES = ["beatportscraper.spiders"]
 NEWSPIDER_MODULE = "beatportscraper.spiders"
 
-FEEDS = {
-    'data.csv': {'format': 'csv'}
-}
+# FEEDS = {
+#     'data.csv': {'format': 'csv'}
+# }
 
 parent_directory = os.path.split(os.path.dirname(__file__))[0]
 file_path = os.path.join(parent_directory, 'credentials.json')
