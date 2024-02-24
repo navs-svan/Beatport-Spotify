@@ -3,7 +3,7 @@ test.py
 *.log
 credentials.json
 *.csv
-beatportscraper/.scrapy/deltafetch/
+**/.scrapy/deltafetch/
 **/__pycache__/
 
 # SCRAPY 

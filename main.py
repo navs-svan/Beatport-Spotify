@@ -1,4 +1,4 @@
-import spotify_client
+import src.spotify_client as spotify_client
 import psycopg2
 import psycopg2.extras
 import os

@@ -321,7 +321,7 @@ class SpotifyClient:
 
 
 if __name__ == "__main__":
-    credentials = os.path.join(os.path.dirname(__file__), 'credentials.json')
+    credentials = os.path.join(os.path.split(os.path.dirname(__file__))[0], 'credentials.json')
     app = SpotifyClient.get_credentials(credentials)
 
     # playlist_id = app.create_playlist("Summer Playlist by Philippe Petit", "Playlist created through Spotify API")

@@ -20,7 +20,7 @@ FEEDS = {
     'data.csv': {'format': 'csv'}
 }
 
-parent_directory = os.path.split(os.path.split(os.path.dirname(__file__))[0])[0]
+parent_directory = os.path.split(os.path.dirname(__file__))[0]
 file_path = os.path.join(parent_directory, 'credentials.json')
 
 with open(file_path, 'r') as f:
