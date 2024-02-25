@@ -230,20 +230,21 @@ class SpotifyClient:
                 
                 if features_response.status_code == 200:
                     features = features_response.json()
-                    features_dict = {
-                                "acousticness": features["acousticness"],
-                                "danceability": features["danceability"],
-                                "energy": features["energy"],
-                                "instrumentalness": features["instrumentalness"],
-                                "liveness": features["liveness"],
-                                "loudness": features["loudness"],
-                                "speechiness": features["speechiness"],
-                                "tempo": features["tempo"],
-                                "time_signature": features["time_signature"],
-                                "valence": features["valence"]
-                    } 
-                    return features_dict
-                
+                    for feature in features['audio_features']:
+                        features_dict = {
+                                    "acousticness": feature["acousticness"],
+                                    "danceability": feature["danceability"],
+                                    "energy": feature["energy"],
+                                    "instrumentalness": feature["instrumentalness"],
+                                    "liveness": feature["liveness"],
+                                    "loudness": feature["loudness"],
+                                    "speechiness": feature["speechiness"],
+                                    "tempo": feature["tempo"],
+                                    "time_signature": feature["time_signature"],
+                                    "valence": feature["valence"]
+                        } 
+                        yield features_dict
+                    break
                 elif features_response.status_code == 429:
                     print(features_response.json())
                     raise SpotifyRateException
@@ -414,4 +415,8 @@ if __name__ == "__main__":
     # playlist_id2 = app.create_playlist("Recos Based on Summer By Philippe Petit ", "Playlist created through Spotify API")
     # app.add_track(playlist_id=playlist_id2, track_id_list=reco_track_ids)
     
+    track_ids = ['7ouMYWpwJ422jRcDASZB7P','4VqPOruhp5EdPBeR92t6lQ','2takcwOaAZWiXQijPHIx7B', '6uLMxmK9MHb6fiecxn2yrp']
+    for feature in app.get_track_features(track_ids):
+        print(feature)
+
     # track_id = app.search_track(market="PH", song_details=test_song10)
