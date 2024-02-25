@@ -130,7 +130,12 @@ class SpotifyClient:
                             match_index = None
                             for index, item in enumerate(items):
                                 result_artist_set = set()
-                                artists = item["artists"]
+
+                                # TODO catch this error and fix it
+                                try:
+                                    artists = item["artists"]
+                                except TypeError:
+                                    print(item)
 
                                 for artist in artists:
                                     result_artist_set.add(unidecode(artist["name"].lower()))
@@ -156,10 +161,15 @@ class SpotifyClient:
                                         temp = requests.get(next_endpoint, headers=self.auth_header())
                                         if temp.status_code == 429:
                                             raise SpotifyRateException
+                                        elif temp.status_code == 401:
+                                            raise SpotifyTokenException
                                     except SpotifyRateException:
-                                        retry_time = int(temp.headers['retry-after'])
+                                        retry_time = int(temp.headers.get('retry-after', 1)) + 3
                                         print(f"Rate limit exceeded, sleeping for {retry_time} seconds")
                                         time.sleep(retry_time)
+                                    except SpotifyTokenException:
+                                        self._refesh_token()
+                                        continue
                                     else:
                                         song = temp
                                     finally:
@@ -169,16 +179,20 @@ class SpotifyClient:
                             return None
                 elif song.status_code == 429:
                     raise SpotifyRateException
+                elif song.status_code == 401:
+                    raise SpotifyTokenException
                 else:
                     print(json.dumps(song.json(), indent=4, sort_keys=True))
                     raise SystemExit("An error occured")
             except SpotifyRateException:
-                    retry_time = int(song.headers['retry-after'])
+                    retry_time = int(song.headers.get('retry-after',1)) + 3
                     print(f"Rate limit exceeded, sleeping for {retry_time} seconds")
                     time.sleep(retry_time)
+            except SpotifyTokenException:
+                self._refesh_token()
+                continue
                     
         
-
     def add_track(self, playlist_id, track_id_list):
         endpoint = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
 
@@ -202,15 +216,17 @@ class SpotifyClient:
             raise SystemExit("Error in adding tracks") 
 
 
-    def get_track_features(self, track_id):
-        endpoint = f"https://api.spotify.com/v1/audio-features/{track_id}"
+    def get_track_features(self, track_id_list):
+        endpoint = f"https://api.spotify.com/v1/audio-features"
 
-        if track_id is None:
+        if track_id_list is None:
             return None
+        
+        params = {'ids': ','.join(track_id_list)} 
         
         while True:
             try:
-                features_response = requests.get(endpoint, headers=self.auth_header())
+                features_response = requests.get(endpoint, params=params, headers=self.auth_header())
                 
                 if features_response.status_code == 200:
                     features = features_response.json()
@@ -229,17 +245,21 @@ class SpotifyClient:
                     return features_dict
                 
                 elif features_response.status_code == 429:
+                    print(features_response.json())
                     raise SpotifyRateException
                 elif features_response.status_code == 401:
-                    print("Access Token expired")
-                    # TODO Handle this later
+                    raise SpotifyTokenException
                 else:
                     print(json.dumps(features_response.json(), indent=4))
                     raise SystemExit("Error in getting track features")
             except SpotifyRateException:
-                retry_time = int(features_response.headers['retry-after'])
+                retry_time = int(features_response.headers.get('retry-after',1)) + 3
                 print(f"Rate limit exceeded, sleeping for {retry_time} seconds")
                 time.sleep(retry_time)
+            except SpotifyTokenException:
+                self._refesh_token()
+                continue
+
 
     def get_recommendations(self, market, track_ids:list, limit=50):
         seed_track = random.sample(track_ids, 5)
@@ -347,7 +367,7 @@ if __name__ == "__main__":
     credentials = os.path.join(os.path.split(os.path.dirname(__file__))[0], 'credentials.json')
     app = SpotifyClient.get_credentials(credentials)
 
-    # playlist_id = app.create_playlist("Summer Playlist by Philippe Petit", "Playlist created through Spotify API")
+    
 
     test_song1 = {"title": "Remember",
                 "artist": "Philippe Petit",
@@ -383,13 +403,15 @@ if __name__ == "__main__":
     track_list = [test_song1, test_song2, test_song3, test_song4, test_song5, test_song6, test_song7, test_song8, test_song9, test_song10]
     track_id_list = []
 
+    # playlist_id = app.create_playlist("Summer Playlist by Philippe Petit", "Playlist created through Spotify API")
     # for track in track_list:
     #     if track_id := app.search_track(market="PH", song_details=track):
     #         track_id_list.append(track_id)
-    
     # app.add_track(playlist_id=playlist_id, track_id_list=track_id_list)
+
+
     # reco_track_ids = app.get_recommendations(market="PH", track_ids=track_id_list)
     # playlist_id2 = app.create_playlist("Recos Based on Summer By Philippe Petit ", "Playlist created through Spotify API")
     # app.add_track(playlist_id=playlist_id2, track_id_list=reco_track_ids)
     
-    track_id = app.search_track(market="PH", song_details=test_song10)
+    # track_id = app.search_track(market="PH", song_details=test_song10)
