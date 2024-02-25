@@ -189,8 +189,11 @@ class SpotifyClient:
     def get_track_features(self, track_id):
         endpoint = f"https://api.spotify.com/v1/audio-features/{track_id}"
 
+        if track_id is None:
+            return None
+        
         features_response = requests.get(endpoint, headers=self.auth_header())
-
+        
         if features_response.status_code == 200:
             features = features_response.json()
             features_dict = {
