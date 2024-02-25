@@ -59,34 +59,39 @@ def spotify_pipeline(conn, cur, app):
     ids = [track["id"] for track in tracks]
     iter_app = itertools.repeat(app)
 
+    search_requests = []
+
+
     with concurrent.futures.ThreadPoolExecutor() as executor:
         results = executor.map(search_retrieve, tracks, ids, iter_app)
 
         for result in results:
-            insert_data(result, conn, cur)
-
-    # for track in tracks:
-    #     features = search_retrieve(track, app)
-        # insert_data(conn, cur, features, track["id"])
-
+            search_requests.append(result)
+    
+    no_id_list = []
+    chunksize = 100
+    id_chunks = [search_requests[i:i+chunksize] for i in range(0, len(search_requests), chunksize)]
+    for chunk in id_chunks:
+        for i, track in enumerate(chunk):
+            if track[1] is None:
+                no_id_list.append(chunk.pop(i))
+        
+        # Insert tracks that were not found
+        for no_id in no_id_list:
+            no_id_features = {"postgres_id" : no_id[0]}
+            insert_data(no_id_features, conn, cur)
+        # Get track features of tracks that were found then insert them
+        
+        unzipped = list(zip(*chunk))
+        postgres_id_list, track_id_list = unzipped[0], unzipped[1]
+        for postgres, feature in zip(postgres_id_list, app.get_track_features(track_id_list)):
+            feature['postgres_id'] = postgres
+            insert_data(feature, conn, cur)
+        
 
 def search_retrieve(track_details, postgres_id ,app):
-    spty_track_id = app.search_track(market="PH", song_details=track_details)
-    if features := app.get_track_features(spty_track_id):
-        features["postgres_id"] = postgres_id
-        return features
-    else:
-        return {'acousticness': None, 
-                'danceability': None, 
-                'energy': None, 
-                'instrumentalness': None, 
-                'liveness': None, 
-                'loudness': None, 
-                'speechiness': None, 
-                'tempo': None, 
-                'time_signature': None, 
-                'valence': None,
-                'postgres_id': postgres_id}
+    sptfy_track_id = app.search_track(market="PH", song_details=track_details)
+    return (postgres_id, sptfy_track_id)
 
 
 def insert_data(track_features, conn, cur):
@@ -117,17 +122,17 @@ def insert_data(track_features, conn, cur):
                         %s,
                         %s
                     )""", (
-                        track_features["postgres_id"],
-                        track_features["acousticness"],
-                        track_features["danceability"],
-                        track_features["energy"],
-                        track_features["instrumentalness"],
-                        track_features["liveness"],
-                        track_features["loudness"],
-                        track_features["speechiness"],
-                        track_features["tempo"],
-                        track_features["time_signature"],
-                        track_features["valence"]
+                        track_features.get("postgres_id"),
+                        track_features.get("acousticness", None),
+                        track_features.get("danceability", None),
+                        track_features.get("energy", None),
+                        track_features.get("instrumentalness", None),
+                        track_features.get("liveness", None),
+                        track_features.get("loudness", None),
+                        track_features.get("speechiness", None),
+                        track_features.get("tempo", None),
+                        track_features.get("time_signature", None),
+                        track_features.get("valence", None)
                     )
                     )
     except Exception as error:
