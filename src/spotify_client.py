@@ -6,16 +6,17 @@ import base64
 import webbrowser
 import random
 from unidecode import unidecode
+import time
 
 
 class SpotifyTokenException(Exception):
-    def __init__(self, message, error_code):
+    def __init__(self, message=None, error_code=None):
         super().__init__(message)
         self.error = error_code
 
 
 class SpotifyRateException(Exception):
-    def __init__(self, message, error_code):
+    def __init__(self, message=None, error_code=None):
         super().__init__(message)
         self.error = error_code
 
@@ -117,50 +118,65 @@ class SpotifyClient:
                 "limit": limit,
                 "offset": offset,
         }
+        while True:
+            try:
+                song = requests.get(endpoint, params=params, headers=self.auth_header())
 
-        song = requests.get(endpoint, params=params, headers=self.auth_header())
+                if song.status_code == 200:
+                    while True:
+                        items = song.json()["tracks"]["items"]
+                        if len(items) > 0:
+                            # Check if artist matches
+                            match_index = None
+                            for index, item in enumerate(items):
+                                result_artist_set = set()
+                                artists = item["artists"]
 
-        if song.status_code == 200:
-            while True:
-                items = song.json()["tracks"]["items"]
-                if len(items) > 0:
-                    # Check if artist matches
-                    match_index = None
-                    for index, item in enumerate(items):
-                        result_artist_set = set()
-                        artists = item["artists"]
+                                for artist in artists:
+                                    result_artist_set.add(unidecode(artist["name"].lower()))
 
-                        for artist in artists:
-                            result_artist_set.add(unidecode(artist["name"].lower()))
+                                input_artist_set = set(song_details['artist'].lower().split(', '))
+                                artist_match = input_artist_set.intersection(result_artist_set)
 
-                        input_artist_set = set(song_details['artist'].lower().split(', '))
-                        artist_match = input_artist_set.intersection(result_artist_set)
+                                if len(artist_match) > 0:
+                                    match_index = index
+                                    break
 
-                        if len(artist_match) > 0:
-                            match_index = index
-                            break
-
-                    # Matching track is assumed correct
-                    if match_index is not None:
-                        print(f"{song_details['title']}: {items[match_index]['external_urls']['spotify']}")
-                        return items[match_index]["id"]
-                    else:
-                        next_endpoint = song.json()["tracks"]["next"]
-                        if next_endpoint is None:  # No more items to return
+                            # Matching track is assumed correct
+                            if match_index is not None:
+                                print(f"{song_details['title']}: {items[match_index]['external_urls']['spotify']}")
+                                return items[match_index]["id"]
+                            else:
+                                next_endpoint = song.json()["tracks"]["next"]
+                                if next_endpoint is None:  # No more items to return
+                                    print(f"{song_details['title']}: Did not find the track")
+                                    return None
+                                else:
+                                    try:
+                                        temp = requests.get(next_endpoint, headers=self.auth_header())
+                                        if temp.status_code == 429:
+                                            raise SpotifyRateException
+                                    except SpotifyRateException:
+                                        retry_time = int(temp.headers['retry-after'])
+                                        print(f"Rate limit exceeded, sleeping for {retry_time} seconds")
+                                        time.sleep(retry_time)
+                                    else:
+                                        song = temp
+                                    finally:
+                                        continue
+                        else: 
                             print(f"{song_details['title']}: Did not find the track")
                             return None
-                        else:
-                            song = requests.get(next_endpoint, headers=self.auth_header())
-                else: 
-                    print(f"{song_details['title']}: Did not find the track")
-                    return None
-        elif song.status_code == 429:
-            print("Rate limit exceeded")
-            print(json.dumps(song.json(), indent=4, sort_keys=True))
-            # TODO Handle this later
-        else:
-            print(json.dumps(song.json(), indent=4, sort_keys=True))
-            raise SystemExit("An error occured")
+                elif song.status_code == 429:
+                    raise SpotifyRateException
+                else:
+                    print(json.dumps(song.json(), indent=4, sort_keys=True))
+                    raise SystemExit("An error occured")
+            except SpotifyRateException:
+                    retry_time = int(song.headers['retry-after'])
+                    print(f"Rate limit exceeded, sleeping for {retry_time} seconds")
+                    time.sleep(retry_time)
+                    
         
 
     def add_track(self, playlist_id, track_id_list):
@@ -192,35 +208,38 @@ class SpotifyClient:
         if track_id is None:
             return None
         
-        features_response = requests.get(endpoint, headers=self.auth_header())
-        
-        if features_response.status_code == 200:
-            features = features_response.json()
-            features_dict = {
-                        "acousticness": features["acousticness"],
-                        "danceability": features["danceability"],
-                        "energy": features["energy"],
-                        "instrumentalness": features["instrumentalness"],
-                        "liveness": features["liveness"],
-                        "loudness": features["loudness"],
-                        "speechiness": features["speechiness"],
-                        "tempo": features["tempo"],
-                        "time_signature": features["time_signature"],
-                        "valence": features["valence"]
-            } 
-            return features_dict
-        
-        elif features_response.status_code == 429:
-            print("Rate limit exceeded")
-            print(json.dumps( features_response.json(), indent=4, sort_keys=True))
-            # TODO Handle this later
-        elif features_response.status_code == 401:
-            print("Access Token expired")
-            # TODO Handle this later
-        else:
-            print(json.dumps(features_response.json(), indent=4))
-            raise SystemExit("Error in getting track features")
-        
+        while True:
+            try:
+                features_response = requests.get(endpoint, headers=self.auth_header())
+                
+                if features_response.status_code == 200:
+                    features = features_response.json()
+                    features_dict = {
+                                "acousticness": features["acousticness"],
+                                "danceability": features["danceability"],
+                                "energy": features["energy"],
+                                "instrumentalness": features["instrumentalness"],
+                                "liveness": features["liveness"],
+                                "loudness": features["loudness"],
+                                "speechiness": features["speechiness"],
+                                "tempo": features["tempo"],
+                                "time_signature": features["time_signature"],
+                                "valence": features["valence"]
+                    } 
+                    return features_dict
+                
+                elif features_response.status_code == 429:
+                    raise SpotifyRateException
+                elif features_response.status_code == 401:
+                    print("Access Token expired")
+                    # TODO Handle this later
+                else:
+                    print(json.dumps(features_response.json(), indent=4))
+                    raise SystemExit("Error in getting track features")
+            except SpotifyRateException:
+                retry_time = int(features_response.headers['retry-after'])
+                print(f"Rate limit exceeded, sleeping for {retry_time} seconds")
+                time.sleep(retry_time)
 
     def get_recommendations(self, market, track_ids:list, limit=50):
         seed_track = random.sample(track_ids, 5)
