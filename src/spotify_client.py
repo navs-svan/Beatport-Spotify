@@ -164,7 +164,7 @@ class SpotifyClient:
                                         elif temp.status_code == 401:
                                             raise SpotifyTokenException
                                     except SpotifyRateException:
-                                        retry_time = int(temp.headers.get('retry-after', 1)) + 1
+                                        retry_time = int(temp.headers.get('retry-after', 1)) * 2  # we really don't want to get banned 
                                         print(f"Rate limit exceeded, sleeping for {retry_time} seconds")
                                         time.sleep(retry_time)
                                     except SpotifyTokenException:
@@ -185,7 +185,7 @@ class SpotifyClient:
                     print(json.dumps(song.json(), indent=4, sort_keys=True))
                     raise SystemExit("An error occured")
             except SpotifyRateException:
-                    retry_time = int(song.headers.get('retry-after',1)) + 1
+                    retry_time = int(song.headers.get('retry-after',1)) * 2  # we really don't want to get banned 
                     print(f"Rate limit exceeded, sleeping for {retry_time} seconds")
                     time.sleep(retry_time)
             except SpotifyTokenException:
@@ -217,7 +217,6 @@ class SpotifyClient:
 
 
     def get_track_features(self, track_id_list):
-        print("track features endpoint request")
         endpoint = f"https://api.spotify.com/v1/audio-features"
 
         if track_id_list is None:
@@ -255,7 +254,7 @@ class SpotifyClient:
                     print(json.dumps(features_response.json(), indent=4))
                     raise SystemExit("Error in getting track features")
             except SpotifyRateException:
-                retry_time = int(features_response.headers.get('retry-after',1)) + 1
+                retry_time = int(features_response.headers.get('retry-after',1)) * 2  # we really don't want to get banned 
                 print(f"Rate limit exceeded, sleeping for {retry_time} seconds")
                 time.sleep(retry_time)
             except SpotifyTokenException:
@@ -417,8 +416,8 @@ if __name__ == "__main__":
     # app.add_track(playlist_id=playlist_id2, track_id_list=reco_track_ids)
     
     track_ids = ['7ouMYWpwJ422jRcDASZB7P','4VqPOruhp5EdPBeR92t6lQ','2takcwOaAZWiXQijPHIx7B', '6uLMxmK9MHb6fiecxn2yrp']
-    postgres = [1,2,3,4]
-    for postgres, feature in zip(postgres,app.get_track_features(track_ids)):
-        print(f"{postgres}:{feature}")
+    
+    for feature in app.get_track_features(track_ids):
+        print(feature)
 
     # track_id = app.search_track(market="PH", song_details=test_song10)
