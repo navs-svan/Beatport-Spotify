@@ -42,7 +42,7 @@ class SpotifyClient:
         add_track(playlist_id, track_id_list):
             Adds tracks to a Spotify playlist
         get_track_features(track_id_list):
-            Retrieves Spotify audio features 
+            Retrieves Spotify audio features
         get_recommendations(market, track_id_list, limit):
             Retrieves track recommendations
         get_credentials
@@ -230,27 +230,36 @@ class SpotifyClient:
             "limit": limit,
             "offset": offset,
         }
+        connect_timeout = 10
+        read_timeout = 10
         while True:
             try:
                 song = requests.get(
-                    endpoint, params=params, headers=self._auth_header()
+                    endpoint,
+                    params=params,
+                    headers=self._auth_header(),
+                    timeout=(connect_timeout, read_timeout),
                 )
 
                 if song.status_code == 200:
                     while True:
-                        items = song.json()["tracks"]["items"]
+                        try:
+                            items = song.json()["tracks"]["items"]
+                        except KeyError:
+                            return None  # The API sometimes returns a response even though it doesn't have tracks
                         if len(items) > 0:
                             # Check if artist matches
                             match_index = None
                             for index, item in enumerate(items):
                                 result_artist_set = set()
-                                # TODO catch this error and fix it
+                                
                                 try:
                                     artists = item["artists"]
                                 except TypeError:
-                                    print(item)
-                                    raise SystemExit("Type Error")
-
+                                    # The Spotify web API does return arrays with null objects in them. 
+                                    # Often the reason is because the content is not available in the specified market.
+                                    return None
+                                
                                 for artist in artists:
                                     result_artist_set.add(
                                         unidecode(artist["name"].lower())
@@ -312,9 +321,13 @@ class SpotifyClient:
                     raise SpotifyRateException
                 elif song.status_code == 401:
                     raise SpotifyTokenException
+                elif song.status_code == 500:
+                    print(json.dumps(song.json(), indent=4, sort_keys=True))
+                    time.sleep(3)
+                    continue
                 else:
                     print(json.dumps(song.json(), indent=4, sort_keys=True))
-                    raise SystemExit("An error occured")
+                    raise SystemExit("An error occurred")
             except SpotifyRateException:
                 retry_time = (
                     int(song.headers.get("retry-after", 1)) * 2
@@ -477,7 +490,7 @@ class SpotifyClient:
     def get_credentials(cls, credentials_file: str) -> "SpotifyClient":
         """
         Summary: Retrieves the Spotify API credentials from the credentials.json file
-            and sets up the class attributes. 
+            and sets up the class attributes.
 
         Args:
             credentials_file (str): string literal of credentials file source path.
