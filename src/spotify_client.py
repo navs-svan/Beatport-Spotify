@@ -252,14 +252,14 @@ class SpotifyClient:
                             match_index = None
                             for index, item in enumerate(items):
                                 result_artist_set = set()
-                                
+
                                 try:
                                     artists = item["artists"]
                                 except TypeError:
-                                    # The Spotify web API does return arrays with null objects in them. 
+                                    # The Spotify web API does return arrays with null objects in them.
                                     # Often the reason is because the content is not available in the specified market.
                                     return None
-                                
+
                                 for artist in artists:
                                     result_artist_set.add(
                                         unidecode(artist["name"].lower())
@@ -328,6 +328,13 @@ class SpotifyClient:
                 else:
                     print(json.dumps(song.json(), indent=4, sort_keys=True))
                     raise SystemExit("An error occurred")
+            except (
+                requests.exceptions.ConnectTimeout,
+                requests.exceptions.ReadTimeout,
+            ) as e:
+                print(f"{e}. Retrying")
+                time.sleep(5)
+                continue
             except SpotifyRateException:
                 retry_time = (
                     int(song.headers.get("retry-after", 1)) * 2
