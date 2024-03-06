@@ -451,6 +451,13 @@ class SpotifyClient:
                 print("Access Token expired. Refreshing token")
                 self._refesh_token()
                 continue
+            except (
+                requests.exceptions.ConnectTimeout,
+                requests.exceptions.ReadTimeout,
+            ) as e:
+                print(f"{e}. Retrying")
+                time.sleep(5)
+                continue
 
     def get_recommendations(
         self, market: str, track_id_list: list, limit: int = 50
