@@ -232,7 +232,9 @@ class SpotifyClient:
         }
         connect_timeout = 10
         read_timeout = 10
-        while True:
+        MAX_RETRIES = 10
+        retry_count = 0
+        while retry_count < MAX_RETRIES:
             try:
                 song = requests.get(
                     endpoint,
@@ -331,8 +333,11 @@ class SpotifyClient:
             except (
                 requests.exceptions.ConnectTimeout,
                 requests.exceptions.ReadTimeout,
+                requests.exceptions.ConnectionError,
             ) as e:
-                print(f"{e}. Retrying")
+                print(f"Error encountered: {e}")
+                retry_count += 1
+                print(f"Retrying... (Attempt {retry_count} of {MAX_RETRIES})")
                 time.sleep(5)
                 continue
             except SpotifyRateException:
@@ -406,8 +411,9 @@ class SpotifyClient:
             return None
 
         params = {"ids": ",".join(track_id_list)}
-
-        while True:
+        MAX_RETRIES = 10
+        retry_count = 0
+        while retry_count < MAX_RETRIES:
             try:
                 features_response = requests.get(
                     endpoint, params=params, headers=self._auth_header()
@@ -454,8 +460,11 @@ class SpotifyClient:
             except (
                 requests.exceptions.ConnectTimeout,
                 requests.exceptions.ReadTimeout,
+                requests.exceptions.ConnectionError,
             ) as e:
-                print(f"{e}. Retrying")
+                print(f"Error encountered: {e}")
+                retry_count += 1
+                print(f"Retrying... (Attempt {retry_count} of {MAX_RETRIES})")
                 time.sleep(5)
                 continue
 
@@ -652,7 +661,11 @@ if __name__ == "__main__":
         "artist": "Dying & Barakat",
         "year": "2023",
     }
-    test_song10 = {"title": "Baiana", "artist": "Bakermat", "year": "2024"}
+    test_song10 = {
+        "title": "I Am Trance",
+        "artist": "Toregualto, Glassman",
+        "year": "2022",
+    }
 
     track_list = [
         test_song1,
@@ -683,6 +696,6 @@ if __name__ == "__main__":
     # for feature in app.get_track_features(track_ids):
     #     print(feature)
 
-    # track_id = app.search_track(market="PH", song_details=test_song10)
-    # for feature in app.get_track_features([track_id]):
-    #     print(feature)
+    track_id = app.search_track(market="PH", song_details=test_song10)
+    for feature in app.get_track_features([track_id]):
+        print(feature)
