@@ -84,10 +84,6 @@ def spotify_pipeline(
     cur.execute(get_query)
     tracks = cur.fetchall()
 
-    titles = [track["title"] for track in tracks]
-    artists = [track["artist"] for track in tracks]
-    years = [track["year"] for track in tracks]
-
     iter_app = itertools.repeat(app)
 
     search_requests = []
