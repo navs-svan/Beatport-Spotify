@@ -2,6 +2,7 @@ import requests
 import urllib.parse
 import json
 import os
+import datetime
 import base64
 import webbrowser
 import random
@@ -203,6 +204,7 @@ class SpotifyClient:
         Args:
             market (str): country code of the market where the track is available
             song_details (dict): a dictionary containing the values of "title", "year", and "artist".
+                {title: str, artist: str, year: datetime}
             type_ (str): type of content that will be searched. Default value of "tracks".
             limit (int): maximum number of results returned by the request. Values should range from 0-50.
             offset (int): the starting index of the json response list. Values should range from 0-1000.
@@ -220,7 +222,7 @@ class SpotifyClient:
             "", "", ":/?#[]@!$&'()*+,;="
         )  # API does not seem to work when queries have this even if properly converted
 
-        query_string = f"track:{song_details['title'].translate(remove_limiters).split('feat')[0]} year:{song_details['year']}"
+        query_string = f"track:{song_details['title'].translate(remove_limiters).split('feat')[0]} year:{song_details['year'].year}"
 
         endpoint = "https://api.spotify.com/v1/search"
         params = {
@@ -648,23 +650,23 @@ if __name__ == "__main__":
     app = SpotifyClient.get_credentials(credentials)
 
     print(type(app))
-    test_song1 = {"title": "Remember", "artist": "Philippe Petit", "year": "2023"}
-    test_song2 = {"title": "Celeste", "artist": "Philippe Petit", "year": "2023"}
-    test_song3 = {"title": "Perimeter", "artist": "JXTPS", "year": "2023"}
-    test_song4 = {"title": "Exile", "artist": "Dimi Angelis", "year": "2023"}
-    test_song5 = {"title": "Reset", "artist": "Decka", "year": "2023"}
-    test_song6 = {"title": "Motor", "artist": "Roseen", "year": "2023"}
-    test_song7 = {"title": "Imadub", "artist": "Kessell, Kerqus", "year": "2023"}
-    test_song8 = {"title": "Igman", "artist": "Sev Dah", "year": "2023"}
+    test_song1 = {"title": "Remember", "artist": "Philippe Petit", "year": datetime.datetime(2023, 9, 1)}
+    test_song2 = {"title": "Celeste", "artist": "Philippe Petit", "year": datetime.datetime(2023, 9, 1)}
+    test_song3 = {"title": "Perimeter", "artist": "JXTPS", "year": datetime.datetime(2023, 9, 1)}
+    test_song4 = {"title": "Exile", "artist": "Dimi Angelis", "year": datetime.datetime(2023, 9, 1)}
+    test_song5 = {"title": "Reset", "artist": "Decka", "year": datetime.datetime(2023, 9, 1)}
+    test_song6 = {"title": "Motor", "artist": "Roseen", "year": datetime.datetime(2023, 9, 1)}
+    test_song7 = {"title": "Imadub", "artist": "Kessell, Kerqus", "year": datetime.datetime(2023, 9, 1)}
+    test_song8 = {"title": "Igman", "artist": "Sev Dah", "year": datetime.datetime(2023, 9, 1)}
     test_song9 = {
         "title": "Time to Expand",
         "artist": "Dying & Barakat",
         "year": "2023",
     }
     test_song10 = {
-        "title": "I Am Trance",
-        "artist": "Toregualto, Glassman",
-        "year": "2022",
+        "title": "100 Miles",
+        "artist": "Nico Morano, MeWhy",
+        "year": datetime.datetime(2023, 9, 1),
     }
 
     track_list = [

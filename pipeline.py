@@ -47,6 +47,7 @@ def spotify_pipeline(
             CREATE TABLE IF NOT EXISTS features(
                 track_title VARCHAR(128) NOT NULL,
 				track_artist VARCHAR(128) NOT NULL,
+                track_year DATE NOT NULL,
                 acousticness NUMERIC,
                 danceability NUMERIC,
                 energy NUMERIC,
@@ -58,39 +59,42 @@ def spotify_pipeline(
                 time_signature INT,
                 valence NUMERIC,
 				UNIQUE(track_title, track_artist),
-				PRIMARY KEY(track_title, track_artist)
+				PRIMARY KEY(track_title, track_artist, track_year)
             );              
         """
     )
     get_query = """
                 SELECT DISTINCT 
-                    t.track_title as title,
-                    t.track_artist as artist,
-                    EXTRACT('Year' FROM t.track_date) AS year 
+                t.track_title as title,
+                t.track_artist as artist,
+                t.track_date AS year 
                 FROM tracks t 
                 WHERE NOT EXISTS (
                     SELECT 
-                        t.track_artist,
-                        t.track_title
+                        f.track_artist,
+                        f.track_title
                     FROM features f 
                     WHERE t.track_artist = f.track_artist
-                    AND t.track_title = f.track_title)
-                LIMIT 1000
-                ;
+                    AND t.track_title = f.track_title
+                    AND t.track_date = f.track_year)
+                LIMIT 1000;
              """
     # results are limited to 1000 because of the possibility of soft ban due to large number of requests
 
     cur.execute(get_query)
     tracks = cur.fetchall()
+
     titles = [track["title"] for track in tracks]
     artists = [track["artist"] for track in tracks]
+    years = [track["year"] for track in tracks]
+
     iter_app = itertools.repeat(app)
 
     search_requests = []
 
     # Search endpoint is somewhat more lenient to large number of requests than track features
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        results = executor.map(search_retrieve, tracks, titles, artists, iter_app)
+        results = executor.map(search_retrieve, tracks, iter_app)
 
         for result in results:
             search_requests.append(result)
@@ -104,35 +108,42 @@ def spotify_pipeline(
     for chunk in id_chunks:
         no_id_list = []
         for i, track in enumerate(chunk):
-            if track[2] is None:
+            if track[3] is None:
                 no_id_list.append(chunk[i])
 
         chunk = [track for track in chunk if track not in no_id_list]
 
         # Insert tracks that were not found
         for no_id in no_id_list:
-            no_id_features = {"postgres_title": no_id[0], "postgres_artist": no_id[1]}
+            no_id_features = {
+                "postgres_title": no_id[0],
+                "postgres_artist": no_id[1],
+                "postgres_year": no_id[2],
+            }
             insert_data(no_id_features, conn, cur)
 
         # Get track features of tracks that were found then insert them
         unzipped = list(zip(*chunk))
-        postgres_titles, postgres_artists, track_id_list = (
+        postgres_titles, postgres_artists, postgres_years, track_id_list = (
             unzipped[0],
             unzipped[1],
             unzipped[2],
+            unzipped[3],
         )
-        for title, artist, feature in zip(
-            postgres_titles, postgres_artists, app.get_track_features(track_id_list)
+        for title, artist, year, feature in zip(
+            postgres_titles,
+            postgres_artists,
+            postgres_years,
+            app.get_track_features(track_id_list),
         ):
             feature["postgres_title"] = title
             feature["postgres_artist"] = artist
+            feature["postgres_year"] = year
             insert_data(feature, conn, cur)
 
 
 def search_retrieve(
     track_details: dict,
-    postgres_title: str,
-    postgres_artist: str,
     app: spotify_client.SpotifyClient,
 ) -> tuple:
     """
@@ -141,19 +152,19 @@ def search_retrieve(
     Args:
         track_details (dict): a dictionary containing the values of
             "title", "year", and "artist".
-        postgres_title (str): string literal of the track title retrieved
-            from the postgres table
-        conn (psycopg2.extensions.connection): A psycopg2 connection class.
-        cur (psycopg2.extensions.RealDictCursor): A pscyopg2 dictionary-like cursor.
-            The attributes of the retrieved records from queries can be accessed
-            similar to Python dictionaries.
         app (spotify_client.SpotifyClient): A spotify_client SpotifyCLient class.
 
     Returns:
-        tuple: A tuple containing the track title, track artist, and Spotify track ID
+        tuple: A tuple containing the track title, track artist, track year,
+            and Spotify track ID
     """
     sptfy_track_id = app.search_track(market="PH", song_details=track_details)
-    return (postgres_title, postgres_artist, sptfy_track_id)
+    return (
+        track_details["title"],
+        track_details["artist"],
+        track_details["year"],
+        sptfy_track_id,
+    )
 
 
 def insert_data(
@@ -177,6 +188,7 @@ def insert_data(
                 INSERT INTO features (
                     track_title,
                     track_artist,
+                    track_year,
                     acousticness,
                     danceability,
                     energy,
@@ -199,11 +211,13 @@ def insert_data(
                         %s,
                         %s,
                         %s,
+                        %s,
                         %s
                     )""",
             (
                 track_features.get("postgres_title"),
                 track_features.get("postgres_artist"),
+                track_features.get("postgres_year"),
                 track_features.get("acousticness", None),
                 track_features.get("danceability", None),
                 track_features.get("energy", None),
@@ -243,7 +257,7 @@ if __name__ == "__main__":
     app = spotify_client.SpotifyClient.get_credentials(credentials_path)
 
     # Run Pipelines
-    beatport_pipeline()
+    # beatport_pipeline()
     spotify_pipeline(conn, cur, app)
 
     # Close connection after running script

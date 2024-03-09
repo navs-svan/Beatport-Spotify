@@ -31,7 +31,7 @@ def by_chart(cur: psycopg2.extras.RealDictCursor, chart_details: tuple) -> tuple
                     chart_author,
                     track_title AS title,
                     track_artist AS artist,
-                    EXTRACT('Year' FROM track_date) AS "year"
+                    track_date AS "year"
                 FROM tracks
                 WHERE chart_name ILIKE %s
                 AND chart_author ILIKE %s;
@@ -75,7 +75,7 @@ def by_artist(
                     SELECT 
                         DISTINCT track_title as title, 
                         track_artist as artist,
-                        EXTRACT('Year' FROM track_date) AS year
+                        track_date AS year
                     FROM tracks
                     WHERE strpos(track_artist, %s) > 0
                     AND track_date BETWEEN %s AND %s;
@@ -86,7 +86,7 @@ def by_artist(
                     SELECT 
                         DISTINCT track_title AS title, 
                         track_artist AS artist,
-                        EXTRACT('Year' FROM track_date) AS year
+                        track_date AS "year"
                     FROM tracks
                     WHERE strpos(track_artist, %s) > 0;
                 """
@@ -151,7 +151,7 @@ def by_genre(
                         t.track_artist AS artist,
                         t.track_genre,
                         r.chart_count,
-                        EXTRACT('Year' FROM track_date) AS year
+                        track_date AS "year"
                     FROM tracks t
                     JOIN ranking r
                         ON t.track_title = r.track_title
@@ -178,7 +178,7 @@ def by_genre(
                         t.track_artist AS artist,
                         t.track_genre,
                         r.chart_count,
-                        EXTRACT('Year' FROM track_date) AS year
+                        track_date AS "year"
                     FROM tracks t
                     JOIN ranking r
                         ON t.track_title = r.track_title
@@ -216,7 +216,7 @@ def by_author(
         genre (str): string literal of the specified chart author.
 
     Yields:
-        tuple: returns a tuple (str, str). The first item contains the chart name while 
+        tuple: returns a tuple (str, str). The first item contains the chart name while
             the second items contains the chart author name
     """
     query = """
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     author_parser.add_argument(
         "-a", "--author", type=str, required=True, help="Author of beatport chart"
     )
-    
+
     # artist subparser
     artist_parser = subparser.add_parser(
         "artist", help="Creates a playlist based on tracks of the specified artist"
@@ -290,7 +290,7 @@ if __name__ == "__main__":
         nargs=2,
         help='Range of dates to consider. Format: "YYYY-MM YYYY-MM"',
     )
-    
+
     # genre subparser
     genre_parser = subparser.add_parser(
         "genre", help="Creates a playlist based on the specified genre"
