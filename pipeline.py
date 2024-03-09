@@ -257,7 +257,7 @@ if __name__ == "__main__":
     app = spotify_client.SpotifyClient.get_credentials(credentials_path)
 
     # Run Pipelines
-    # beatport_pipeline()
+    beatport_pipeline()
     spotify_pipeline(conn, cur, app)
 
     # Close connection after running script
