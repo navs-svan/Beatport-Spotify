@@ -19,7 +19,7 @@ class BeatportspiderSpider(scrapy.Spider):
         print(self.latest_url)
         
     def parse(self, response):
-        charts = response.css('div.fOQOHN')
+        charts = response.css('div.gLzgks')
         for chart in charts:
             relative_url = chart.css('a.artwork::attr(href)').get()
             chart_url = 'https://www.beatport.com' + relative_url

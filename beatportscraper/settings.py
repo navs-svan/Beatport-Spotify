@@ -107,10 +107,10 @@ DOWNLOADER_MIDDLEWARES = {
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
 EXTENSIONS = {
-   "scrapy.extensions.closespider.CloseSpider": 100,
+   "scrapy.extensions.closespider.CloseSpider": 15,
 }
 
-CLOSESPIDER_TIMEOUT_NO_ITEM = 10
+CLOSESPIDER_TIMEOUT_NO_ITEM = 15
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
