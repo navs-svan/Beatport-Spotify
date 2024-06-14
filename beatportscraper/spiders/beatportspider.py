@@ -26,9 +26,9 @@ class BeatportspiderSpider(scrapy.Spider):
             yield response.follow(chart_url, callback=self.parse_charts)
 
         xpath_string = """
-                        //div[@class='Pager-style__Container-sc-47555d13-6 kYSUOG pages']/
-                        div[@class='Pager-style__PageNavItems-sc-47555d13-0 dkbnEZ']/
-                        a[@class='Pager-style__Page-sc-47555d13-1 iMEhSh active']/
+                        //div[@class='Pager-style__Container-sc-47555d13-6 clQVTn pages']/
+                        div[@class='Pager-style__PageNavItems-sc-47555d13-0 hSa-dTg']/
+                        a[@class='Pager-style__Page-sc-47555d13-1 dCarVQ active']/
                         following::a/@href
                     """
         next_page = response.xpath(xpath_string).get()
