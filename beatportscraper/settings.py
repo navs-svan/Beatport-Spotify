@@ -36,20 +36,6 @@ SCRAPEOPS_ENPOINT = 'https://headers.scrapeops.io/v1/browser-headers'
 
 # GET LATEST ENTRY FROM POSTGRES
 
-connection = psycopg2.connect(host=POSTGRES_HOSTNAME, user=POSTGRES_USERNAME, password=POSTGRES_PASSWORD, database=POSTGRES_DATABASE)
-cur = connection.cursor()
-
-try:
-    cur.execute("SELECT chart_url FROM tracks ORDER BY chart_date DESC LIMIT 1;")
-    rows = cur.fetchall()
-    for row in rows:
-        LATEST_URL = row[0]
-except psycopg2.errors.UndefinedTable:
-    LATEST_URL = None
-
-cur.close()
-connection.close()
-
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = "beatportscraper (+http://www.yourdomain.com)"
 

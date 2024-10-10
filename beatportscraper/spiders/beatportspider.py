@@ -15,8 +15,7 @@ class BeatportspiderSpider(scrapy.Spider):
         return cls(crawler.settings)
     
     def __init__(self, settings):
-        self.latest_url = settings.get("LATEST_URL")
-        print(self.latest_url)
+        ...
         
     def parse(self, response):
         charts = response.css('div.bqHPCZ')
