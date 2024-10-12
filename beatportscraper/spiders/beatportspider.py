@@ -18,16 +18,14 @@ class BeatportspiderSpider(scrapy.Spider):
         ...
         
     def parse(self, response):
-        charts = response.css('div.iUxUui')
+        charts = response.css('div.ChartCard-style__Meta-sc-b8ecde7a-9')
         for chart in charts:
             relative_url = chart.css('a.artwork::attr(href)').get()
             chart_url = 'https://www.beatport.com' + relative_url
             yield response.follow(chart_url, callback=self.parse_charts)
 
         xpath_string = """
-                        //div[@class='Pager-style__Container-sc-47555d13-6 dGgBuJ pages']/
-                        div[@class='Pager-style__PageNavItems-sc-47555d13-0 iqjXbu']/
-                        a[@class='Pager-style__Page-sc-47555d13-1 hnjacC active']/
+                        //a[@class='Pager-style__Page-sc-47555d13-1 dCarVQ active']/
                         following::a/@href
                     """
         next_page = response.xpath(xpath_string).get()
